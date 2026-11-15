@@ -184,6 +184,9 @@ svg.overlay line.found{animation:capsIn .35s cubic-bezier(.3,1.4,.5,1)}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 .pill.on{background:var(--grad);color:#fff}
 .play>div{min-width:0}#zw{max-width:100%}
+.grid .cell{box-shadow:inset 0 0 0 .5px rgba(127,127,127,.35);background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(0,0,0,.035))}
+:root[data-theme="light"] .grid .cell{box-shadow:inset 0 0 0 .5px rgba(60,40,140,.22)}
+.grid .cell.anchor{box-shadow:none}
 </style></head>
 <body><div id="bgfx"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
 <div id="app"><header class="bar"><button class="iconbtn" id="backbtn" aria-label="חזרה">➜</button><div class="title" id="bartitle">תפזורת+</div><button class="iconbtn" id="homebtn" aria-label="בית">🏠</button></header>
@@ -809,18 +812,17 @@ const PDF = (() => {
   // ציור רשת (או חלק משורותיה)
   function drawGrid(pg, grid, n, X, Y, size, r0 = 0, r1 = n) {
     const { x } = pg, cs = size / n, rows = r1 - r0;
-    x.lineWidth = .6; rr(x, X - 1.5, Y - 1.5, size + 3, cs * rows + 3, 3); x.stroke();
+    
     x.textAlign = 'center'; font(x, cs * .62, 700);
     for (let r = r0; r < r1; r++) for (let c = 0; c < n; c++) {
       const cx = X + size - (c + .5) * cs, cy = Y + (r - r0 + .53) * cs; // ימין לשמאל
       x.fillText(grid[r][c], cx, cy);
     }
-    if (n > 14) { // קווי עזר עדינים כל 5
-      x.strokeStyle = '#ccc'; x.lineWidth = .15;
-      for (let k = 5; k < n; k += 5) { const lx = X + size - k * cs; x.beginPath(); x.moveTo(lx, Y); x.lineTo(lx, Y + cs * rows); x.stroke(); }
-      for (let k = Math.ceil(r0 / 5) * 5; k < r1; k += 5) { if (k === r0) continue; const ly = Y + (k - r0) * cs; x.beginPath(); x.moveTo(X, ly); x.lineTo(X + size, ly); x.stroke(); }
-      x.strokeStyle = '#000';
-    }
+    // משבצות
+    x.strokeStyle = '#9a9a9a'; x.lineWidth = .18;
+    for (let k = 1; k < n; k++) { const lx = X + k * cs; x.beginPath(); x.moveTo(lx, Y); x.lineTo(lx, Y + cs * rows); x.stroke(); }
+    for (let k = 1; k < rows; k++) { const ly = Y + k * cs; x.beginPath(); x.moveTo(X, ly); x.lineTo(X + size, ly); x.stroke(); }
+    x.strokeStyle = '#000'; x.lineWidth = .6; x.strokeRect(X, Y, size, cs * rows);
     return cs * rows;
   }
 
