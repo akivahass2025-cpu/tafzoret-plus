@@ -1453,9 +1453,13 @@ async function sharePuzzle(p) {
 }
 
 /* ---------- PDF ---------- */
+let _dlP = null;
+function claudeDownloads() { if (!window.claude || !window.claude.use) return Promise.resolve(null); if (!_dlP) _dlP = Promise.race([window.claude.use('downloads').catch(() => null), new Promise(r => setTimeout(() => r(null), 4000))]); return _dlP; }
 async function deliverPdf(blob, name) {
   S.stats.pdfs++; save(); checkAch();
   if (window.AndroidBridge && AndroidBridge.saveFile) { const r = new FileReader(); r.onload = () => AndroidBridge.saveFile(name, r.result.split(',')[1], 'application/pdf'); r.readAsDataURL(blob); return; }
+  const dl = await claudeDownloads();
+  if (dl) { try { await dl.save({ filename: name, data: blob }); toast('הקובץ נשמר ✅'); } catch (e) { if (e && e.code !== 'declined') toast('לא הצלחתי לשמור את הקובץ כאן'); } return; }
   const file = new File([blob], name, { type: 'application/pdf' }), url = URL.createObjectURL(blob);
   const b = modal(`<h2>📄 הקובץ מוכן!</h2><p class="muted">${esc(name)} · ${(blob.size / 1024 / 1024).toFixed(1)}MB</p><div class="list"><a class="btn primary block" href="${url}" download="${esc(name)}" id="dl">⬇️ הורד PDF</a>
     ${navigator.canShare && navigator.canShare({ files: [file] }) ? '<button class="btn block" id="sh">📲 שתף / שלח להדפסה</button>' : ''}<a class="btn block" href="${url}" target="_blank" rel="noopener">👁️ פתח לצפייה</a></div>`);
@@ -1555,8 +1559,9 @@ views.backup = {
       <div class="row"><label class="btn grow">📁 טען קובץ<input type="file" id="fi" accept=".json,.txt,application/json" hidden></label></div>
       <textarea class="in" id="tx" style="min-height:90px;margin-top:10px" placeholder="או הדבק כאן קוד גיבוי"></textarea><button class="btn block" id="im" style="margin-top:8px">שחזר מהקוד</button></div>`;
     const data = () => b64urlEncode(JSON.stringify(S));
-    $('#ex', el).onclick = () => { const blob = new Blob([JSON.stringify(S)], { type: 'application/json' }); const name = `tafzoret-backup-${today()}.json`;
+    $('#ex', el).onclick = async () => { const blob = new Blob([JSON.stringify(S)], { type: 'application/json' }); const name = `tafzoret-backup-${today()}.json`;
       if (window.AndroidBridge && AndroidBridge.saveFile) { AndroidBridge.saveFile(name, b64urlEncode(JSON.stringify(S)).replace(/-/g, '+').replace(/_/g, '/'), 'application/json'); return; }
+      const dl = await claudeDownloads(); if (dl) { try { await dl.save({ filename: name, data: blob }); toast('קובץ הגיבוי נשמר 💾'); } catch (e) { } return; }
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); toast('קובץ הגיבוי נשמר 💾'); };
     $('#cp', el).onclick = async () => { try { await navigator.clipboard.writeText(data()); toast('קוד הגיבוי הועתק 📋'); } catch (e) { $('#tx', el).value = data(); toast('הקוד מופיע בתיבה — העתק אותו'); } };
     const restore = async txt => { try { txt = txt.trim(); const obj = JSON.parse(txt.startsWith('{') ? txt : b64urlDecode(txt)); if (!obj.settings) throw 0; if (!(await confirmBox('להחליף את כל הנתונים בגיבוי?', 'שחזר'))) return; S = deepMerge(DEFAULT(), obj); localStorage.setItem(KEY, JSON.stringify(S)); applyTheme(); toast('השחזור הצליח ✅'); go('home', {}, true); } catch (e) { toast('הגיבוי לא תקין 😕'); } };
